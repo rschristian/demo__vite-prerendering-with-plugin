@@ -248,7 +248,6 @@ export function PrerenderPlugin({
 				}
 
 				const result = await prerender({ ssr: true, url: route.url, route });
-                console.log(result);
 				if (result == null) continue;
 
 				// Reset HTML doc & head data
