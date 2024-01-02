@@ -1,3 +1,4 @@
+
 import path from "node:path";
 
 import { promises as fs } from "node:fs";
@@ -9,7 +10,7 @@ import type { Plugin, ResolvedConfig } from "vite";
 
 // Vite re-exports Rollup's type defs in newer versions,
 // merge into above type import when we bump the Vite devDep
-import type { OutputAsset, OutputChunk } from "rollup";
+import type { InputOption, OutputAsset, OutputChunk } from "rollup";
 
 interface HeadElement {
 	type: string;
@@ -78,6 +79,39 @@ export function PrerenderPlugin({
 	renderTarget ||= "body";
 	additionalPrerenderRoutes ||= [];
 
+	/**
+	 * From the non-external scripts in entry HTML document, find the one (if any)
+	 * that provides a `prerender` export
+	 */
+	const getPrerenderScriptFromHTML = async (input: InputOption) => {
+		// prettier-ignore
+		const entryHtml =
+			typeof input === "string"
+				? input
+				: Array.isArray(input)
+					? input.find(i => /html$/.test(i))
+					: Object.values(input).find(i => /html$/.test(i));
+
+		if (!entryHtml) throw new Error("Unable to detect entry HTML");
+
+		const htmlDoc = htmlParse(await fs.readFile(entryHtml, "utf-8"));
+
+		const entryScriptTag = htmlDoc
+			.getElementsByTagName("script")
+			.find(s => s.hasAttribute("prerender"));
+
+		if (!entryScriptTag)
+			throw new Error("Unable to detect prerender entry script");
+
+		const entrySrc = entryScriptTag.getAttribute("src");
+		if (!entrySrc || /^https:/.test(entrySrc))
+			throw new Error(
+				"Prerender entry script must have a `src` attribute and be local",
+			);
+
+		return path.join(viteConfig.root, entrySrc);
+	};
+
 	return {
 		name: "ryuns-bitchin-prerenderer",
 		apply: "build",
@@ -88,7 +122,7 @@ export function PrerenderPlugin({
 		async options(opts) {
 			if (!opts.input) return;
 			if (!prerenderScript) {
-                this.error("Missing `prerenderScript` option");
+				prerenderScript = await getPrerenderScriptFromHTML(opts.input);
 			}
 
 			// prettier-ignore

@@ -12,6 +12,7 @@ export async function prerender() {
     const app = createSSRApp(App);
 
     return {
-        html: await renderToString(app)
+        html: await renderToString(app),
+        //links: new Set(['/404'])
     }
 }

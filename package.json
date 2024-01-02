@@ -15,7 +15,7 @@
     "@types/node": "^18.0.0",
     "@vitejs/plugin-vue": "^4.5.2",
     "magic-string": "0.30.5",
-		"node-html-parser": "^6.1.10",
+    "node-html-parser": "^6.1.10",
     "vite": "^5.0.8"
   }
 }
